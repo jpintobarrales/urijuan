@@ -399,7 +399,7 @@ const SHEETS=[
 ];
 // escenas del final: pareja en el cenote, boda y mariachi (se dibujan cuadro a cuadro)
 const XS={patada:{src:'assets/patada.png',count:3,H:130,refFrame:0,onlyBody:true,map:{idle:0}},kenny_atk:{src:'assets/kennymadley_ataques.png',count:4,H:130,refFrame:3,onlyBody:true,map:{idle:0}},cenote:{src:'assets/pareja_cenote.png',count:3,H:128,map:{idle:0}},boda:{src:'assets/boda.png',count:3,H:132,map:{idle:0}},mariachi:{src:'assets/mariachi.png',count:2,H:132,map:{idle:0}},
-  poncho:{src:'assets/poncho.png',count:4,H:136,map:{idle:0}},noe:{src:'assets/noe.png',count:4,H:128,map:{idle:0}},oudrey:{src:'assets/oudrey.png',count:3,H:44,map:{idle:0}},byron:{src:'assets/byron.png',count:3,H:58,map:{idle:0}},congo:{src:'assets/congo.png',count:3,H:56,map:{idle:0}}};
+  poncho:{src:'assets/poncho.png',count:4,H:136,map:{idle:0}},noe:{src:'assets/noe.png',count:4,H:128,map:{idle:0}},oudrey:{src:'assets/oudrey.png',count:3,H:44,map:{idle:0}},byron:{src:'assets/byron.png',count:3,H:58,map:{idle:0}},congo:{src:'assets/congo.png',count:3,H:56,map:{idle:0}},panico:{src:'assets/panico.png',count:2,H:132,map:{idle:0}}};
 function drawXS(name,fi,x,y,o){const d=XS[name];if(!d||!d.ready)return false;o=o||{};const sp=sheetSprite(d,fi,o.scale||1);
   ctx.save();ctx.translate(P2(x),P2(y));if(o.face<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;ctx.drawImage(o.flash?sp.wc:sp.c,-sp.ox*2,-sp.oy*2,sp.c.width*2,sp.c.height*2);ctx.restore();return true;}
 // objetos (obstáculos y proyectiles): cada pieza de la hoja es un sprite
@@ -911,7 +911,7 @@ function processBG(d,img){const W0=img.naturalWidth,H0=img.naturalHeight,c=mkC(W
   d.tileW=tw*2;d.farH=d.far.height*2;d.nearY=P2(d.split*sc);d.nearH=d.near.height*2;d.ready=true;}
 Object.values(BGS).forEach(d=>ASSETQ.push({d,fn:processBG}));
 // orden: portada y protagonistas primero, luego país por país en el orden del viaje
-const LOADORDER=['portada','principal','su_amor','patada','terremoto','chile','huaso','don_huaso','peru','guerrero_inti','condor','ecuador','sombrerero','guardian','tortuga','colombia','cafe','baron','panama','diablo','costarica','boyero','nicaragua','guegue','honduras','tamborero','maestro','salvador','pupusero','guatemala','quetzal','jaguar','kenny','mexico','pareja','boda','mariachi','poncho','noe','byron','oudrey','congo'];
+const LOADORDER=['portada','principal','su_amor','patada','terremoto','chile','huaso','don_huaso','peru','guerrero_inti','condor','ecuador','sombrerero','guardian','tortuga','colombia','cafe','baron','panama','diablo','costarica','boyero','nicaragua','guegue','honduras','tamborero','maestro','salvador','pupusero','guatemala','quetzal','jaguar','kenny','mexico','pareja','boda','mariachi','poncho','noe','byron','oudrey','congo','panico'];
 const prio=src=>{const n=src.replace(/^.*\//,'');const i=LOADORDER.findIndex(k=>n.startsWith(k)||n.includes(k));return i<0?99:i;};
 ASSETQ.sort((a,b)=>prio(a.d.src)-prio(b.d.src));
 const LOAD={total:ASSETQ.length,done:0};const WARM=[];
@@ -1167,7 +1167,10 @@ function wedScript(){if(WS)return WS;const A=nA(),B=nB(),L=[
   ['rings','',null,85],
   ['dec','J','¡Por el poder que me da el mariachi, los declaro esposos! Pueden besarse 💋']];
   let t=60;WS={};for(const [id,who,text,dur] of L){const d=dur||Math.round(40+text.length*1.2);WS[id]={t0:t,t1:t+d,who,text};t+=d;}WS.kiss=t;return WS;}
-function updateEnding(){updParts();const S=wedScript(),K=S.kiss,ew0=et-580,talk=(et>=150&&et<300)||(ew0>=60&&ew0<K);eAcc+=talk?0.5:1;if(eAcc<1){if(ew0>K+180&&pressAny())toTitle();return;}eAcc-=1;et++;
+function updateEnding(){updParts();const S=wedScript(),K=S.kiss,tap=pressAny();
+  // clic o tecla: adelanta el diálogo que se está mostrando (no con el clic que recién activa el sonido)
+  if(tap&&AC&&AC.currentTime>0.3){const e=et-580;if(et>=150&&et<230)et=229;else if(et>=230&&et<300)et=299;else if(e>=0&&e<K)for(const id in S){const d=S[id];if(d&&d.text&&e>=d.t0&&e<d.t1){et=580+d.t1-1;eAcc=1;break;}}}
+  const ew0=et-580,talk=(et>=150&&et<300)||(ew0>=60&&ew0<K);eAcc+=talk?0.5:1;if(eAcc<1){if(ew0>K+180&&tap)toTitle();return;}eAcc-=1;et++;
   if(et===300){for(let i=0;i<20;i++)addP(500+(rand()-0.5)*80,GY-120,{type:'heart',size:10+rand()*14,color:['#ff4d8d','#ff7aa8','#ffb3cf'][i%3],vx:(rand()-0.5)*3,vy:-1-rand()*2,life:90,max:90});SFX.pickup();}
   if(et===440)SFX.kiss();if(et===580){playMusic('wedding');parts=[];}
   const ew=et-580;
@@ -1182,8 +1185,7 @@ function updateEnding(){updParts();const S=wedScript(),K=S.kiss,ew0=et-580,talk=
   if(ew>=K){const ek=ew-K;if(ek%28===0){const cx=100+rand()*760,cy=60+rand()*160;burst(cx,cy,40,[['#ff4d8d','#ffd23f','#6ee7b7','#7dd3fc','#c084fc'][rand()*5|0],'#fff'],5);SFX.pop();}
     if(frame%2===0)addP(rand()*W,-10,{type:'conf',vy:1.5+rand()*2,life:320,max:320,size:4+rand()*3,color:['#e63946','#f4a261','#2a9d8f','#e9c46a','#9b5de5','#00bbf9','#fff'][rand()*7|0],vr:(rand()-0.5)*0.2});
     if(ek%20===0)addP(480+(rand()-0.5)*60,GY-150,{type:'heart',size:14+rand()*10,color:'#ff4d8d',vx:(rand()-0.5)*2,vy:-1.5,life:80,max:80});}
-  if(et<580&&(press('start'))&&et>40){et=Math.max(et,0);}
-  if(ew>K+180&&pressAny())toTitle();}
+  if(ew>K+180&&tap)toTitle();}
 // Poncho, Noe, KennyMadley, Byron, Oudrey y Congo llegan corriendo con los anillos
 function drawRescue(ew,S){const r0=S.run.t0;if(ew<r0)return {};const K=S.kiss,party=ew>=K,RD=S.run.t1-r0,on=id=>ew>=S[id].t0&&ew<S[id].t1;
   const pos=(x1,dl,x0)=>{const k=clamp((ew-r0-dl)/(RD-40),0,1);return {x:lerp(x0,x1,k),mv:k>0&&k<1};};
@@ -1217,12 +1219,12 @@ function drawEnding(){
     if(et>520){ctx.fillStyle='rgba(255,255,255,'+clamp((et-520)/60,0,1)+')';ctx.fillRect(0,0,W,H);}}
   else{const ew=et-580,S=wedScript(),K=S.kiss;drawWedding(ew);
     const kiss=ew>=K,lean=kiss?Math.min(0.15,(ew-K)*0.008):0;const hxp=kiss?lerp(410,436,clamp((ew-K)/20,0,1)):410,pxp=kiss?lerp(550,524,clamp((ew-K)/20,0,1)):550;
-    if(XS.boda.ready){if(kiss){shadow(480,GY,60);drawXS('boda',2,480,GY);}else{shadow(hxp,GY,30);shadow(pxp,GY,30);drawXS('boda',0,hxp,GY);drawXS('boda',1,pxp,GY,{face:-1});}}
+    if(XS.boda.ready){if(kiss){shadow(480,GY,60);drawXS('boda',2,480,GY);}else{shadow(hxp,GY,30);shadow(pxp,GY,30);const pa=XS.panico.ready&&ew>=S.a1.t0&&ew<S.p1.t0,pb=XS.panico.ready&&ew>=S.a2.t0&&ew<S.p1.t0;drawXS(pa?'panico':'boda',0,hxp,GY);drawXS(pb?'panico':'boda',1,pxp,GY,{face:-1});}}
     else{shadow(hxp,GY,30);shadow(pxp,GY,30);drawChar(HERO_W,{x:hxp,y:GY,face:1,t:frame,pose:kiss?'hug':null,rot:lean,eyesClosed:kiss,blush:true});drawChar(LOVE_W,{x:pxp,y:GY,face:-1,t:frame+15,pose:kiss?'hug':null,rot:lean,eyesClosed:kiss,blush:true});}
     const G=drawRescue(ew,S);
     // pánico: ¡se les olvidaron los anillos!
     if(ew>=S.a2.t0&&ew<S.p1.t0){if(frame%30<22){txt('!!',hxp-40,GY-128,32,'#ff4d4d');txt('!!',pxp+40,GY-128,32,'#ff4d4d');}
-      const drop=(x,o)=>{const k=((ew+o)%26)/26;ctx.globalAlpha=1-k*0.6;ell(x,GY-118+k*22,3,5);fs('#9fe0ff',1.5);ctx.globalAlpha=1;};drop(hxp-18,0);drop(pxp+18,13);}
+      const drop=(x,o)=>{const k=((ew+o)%26)/26;ctx.globalAlpha=1-k*0.6;ell(x,GY-118+k*22,3,5);fs('#9fe0ff',1.5);ctx.globalAlpha=1;};if(!XS.panico.ready){drop(hxp-18,0);drop(pxp+18,13);}}
     if(ew>=S.rings.t0&&!kiss){ctx.strokeStyle='#ffd23f';ctx.lineWidth=3;circ(hxp+34,GY-60,6);ctx.stroke();}
     if(ew>=S.rings.t0+50&&!kiss){ctx.strokeStyle='#ffd23f';ctx.lineWidth=3;circ(pxp-34,GY-60,6);ctx.stroke();}
     const SP=Object.assign({J:[480,GY-150],A:[hxp,GY-140],B:[pxp,GY-140]},G);
